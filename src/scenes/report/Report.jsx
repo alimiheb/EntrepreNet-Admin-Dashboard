@@ -19,79 +19,73 @@ const style = {
   pb: 3,
 };
 
-const Team = () => {
+const Report = () => {
   const theme = useTheme();
-  const [users, setUsers] = useState([]);
+  const [reports, setReports] = useState([]);
   const [open, setOpen] = useState(false);
-  const [action, setAction] = useState("");
   const [selectedRow, setSelectedRow] = useState([]);
+  const [action, setAction] = useState("");
   const handleOpen = () => {
     setOpen(true);
   };
   const handleClose = () => {
-    setAction("");
     setOpen(false);
   };
   const colors = tokens(theme.palette.mode);
   const columns = [
     { field: "id", headerName: "ID" },
     {
-      field: "username",
-      headerName: "Username",
+      field: "reportedUserName",
+      headerName: "Reported Username",
       flex: 1,
       cellClassName: "name-column--cell",
     },
     {
-      field: "status",
-      headerName: "Status",
+      field: "reportedUserStatus",
+      headerName: "Reported User Status",
       flex: 1,
       cellClassName: "name-column--cell",
     },
     {
-      field: "email",
-      headerName: "Email",
-      flex: 1,
-    },
-    {
-      field: "reportCount",
-      headerName: "ReportCount",
+      field: "count",
+      headerName: "Report Count",
       flex: 1,
       cellClassName: "name-column--cell",
     },
-
     {
       field: "actions",
       headerName: "Actions",
       flex: 1,
       renderCell: ({ row }) => {
-        const handleVerifyClick = () => {
-          setAction("verify");
-          setSelectedRow(row);
+        const handleblock = () => {
           handleOpen();
+          setSelectedRow(row);
+          setAction("block");
         };
 
-        const handleDeleteClick = () => {
-          setAction("delete");
-          setSelectedRow(row);
+        const handleUnblock = () => {
           handleOpen();
+          setSelectedRow(row);
+          setAction("unblock");
         };
-
         return (
           <Box display="flex" justifyContent="space-around" width="100%">
             <Button
               variant="contained"
-              color="secondary"
-              onClick={handleVerifyClick}
-              {...(row.status === "verified" && { disabled: true })}
+              color="error"
+              onClick={handleblock}
+              {...(row.reportedUserStatus === "blocked" && { disabled: true })}
             >
-              Verify
+              Block
             </Button>
+
             <Button
               variant="contained"
-              color="error"
-              onClick={handleDeleteClick}
+              color="secondary"
+              onClick={handleUnblock}
+              {...(row.reportedUserStatus !== "blocked" && { disabled: true })}
             >
-              Delete User
+              Unblock
             </Button>
           </Box>
         );
@@ -99,61 +93,19 @@ const Team = () => {
     },
   ];
 
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch("http://localhost:8000/api/v1/admin/users", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const users = data.data.users.map((user, index) => ({
-        id: index + 1,
-        _id: user._id,
-        username: user.username,
-        status: user.status,
-        email: user.email,
-      }));
-      setUsers(users);
-    } catch (error) {
-      console.error("Error fetching users:", error);
-      throw error;
-    }
-  };
-
   const handleConfirmation = async () => {
     try {
-      if (action === "verify") {
-        await fetch(
-          `http://localhost:8000/api/v1/admin/users/${selectedRow._id}/verify`,
-          {
-            method: "PATCH",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-      } else if (action === "delete") {
-        await fetch(
-          `http://localhost:8000/api/v1/admin/users/${selectedRow._id}`,
-          {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-              "Content-Type": "application/json",
-            },
-          }
-        );
-      }
-      fetchUsers();
+      await fetch(
+        `http://localhost:8000/api/v1/admin/users/${selectedRow.reportedUser_id}/${action}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      fetchReports();
       handleClose();
     } catch (error) {
       console.error("Error performing action:", error);
@@ -161,13 +113,45 @@ const Team = () => {
     }
   };
 
+  const fetchReports = async () => {
+    try {
+      const response = await fetch(
+        "http://localhost:8000/api/v1/admin/reports",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const reports = data?.reportedUsers.map((report, index) => ({
+        id: index + 1,
+        reportedUserName: report.reportedUserName,
+        reportedUserStatus: report.reportedUserStatus,
+        count: report.reportCount,
+        reportedUser_id: report.reportedUserId,
+      }));
+      setReports(reports);
+    } catch (error) {
+      console.error("Error fetching reports:", error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
-    fetchUsers();
+    fetchReports();
   }, []);
 
   return (
     <Box m="20px">
-      <Header title="USERS" />
+      <Header title="Reports" />
       <Box
         m="40px 0 0 0"
         height="75vh"
@@ -197,7 +181,7 @@ const Team = () => {
           },
         }}
       >
-        <DataGrid checkboxSelection rows={users} columns={columns} />
+        <DataGrid checkboxSelection rows={reports} columns={columns} />
       </Box>
       <Modal
         open={open}
@@ -207,7 +191,7 @@ const Team = () => {
       >
         <Box sx={{ ...style, width: 600 }}>
           <h2 id="child-modal-title">
-            {`${action.charAt(0).toUpperCase() + action.slice(1)} Confirmation`}
+            {action + " " + selectedRow.reportedUserName}
           </h2>
           <p id="child-modal-description">
             Are you sure you want to perform this action?
@@ -228,4 +212,4 @@ const Team = () => {
   );
 };
 
-export default Team;
+export default Report;

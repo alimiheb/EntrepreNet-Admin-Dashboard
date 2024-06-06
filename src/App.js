@@ -7,6 +7,7 @@ import Invoices from "./scenes/invoices";
 import Login from "./Login/Login";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import { ColorModeContext, useMode } from "./theme";
+import Report from "./scenes/report/Report";
 
 function App() {
   const [theme, colorMode] = useMode();
@@ -49,6 +50,10 @@ function App() {
               <Route
                 path="/invoices"
                 element={isLoggedIn ? <Invoices /> : <Navigate to="/login" />}
+              />
+              <Route
+                path="/reports"
+                element={isLoggedIn ? <Report /> : <Navigate to="/login" />}
               />
             </Routes>
           </main>

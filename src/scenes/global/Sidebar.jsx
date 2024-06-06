@@ -129,6 +129,14 @@ const Sidebar = () => {
               setSelected={setSelected}
             />
 
+            <Item
+              title="Manage Reports"
+              to="/reports"
+              icon={<PeopleOutlinedIcon />}
+              selected={selected}
+              setSelected={setSelected}
+            />
+
             <Fab
               variant="extended"
               onClick={handleLogout}
